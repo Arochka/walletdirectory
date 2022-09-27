@@ -7,12 +7,12 @@
 const hre = require('hardhat')
 
 async function main() {
-  const contractFactory = await hre.ethers.getContractFactory('WalletDirectory')
+  const contractFactory = await hre.ethers.getContractFactory('WalletDirectoryCoin')
   const contract = await contractFactory.deploy()
 
   await contract.deployed()
 
-  console.log('WalletDirectory deployed to:', contract.address)
+  console.log('WalletDirectoryCoin deployed to:', contract.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

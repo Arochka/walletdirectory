@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ethers } from "ethers";
-import abi from "./contracts/WalletDirectory.json";
+import walletDirectoryAbi from "./contracts/WalletDirectory.json";
+import WalletDirectoryCoinAbi from "./contracts/WalletDirectoryCoin.json";
 
 interface WalletContact {
   Name: string;
   Email: string;
   PhoneNumber: string;
+  StackedTokens: number;
 }
 
-const contractAddress = "0x65168dE664B9BEb960ee2E5104988F36A334cACF";
-const contractABI = abi.abi;
+const contractAddress = "0x0f87f3018a74Ea58eC5f67680de45E724AF2F03E";
+const contractABI = walletDirectoryAbi.abi;
+
+const coinAddress = "0x87a725B3dF717C3c0a36Ebc5f34Bfa3C618aF0fd";
+const coinABI = WalletDirectoryCoinAbi.abi;
 
 let currentAccount = ref("");
 let search = ref("");
@@ -46,6 +51,7 @@ async function checkIfWalletIsConnected() {
         Name: contact.Name,
         Email: contact.Email,
         PhoneNumber: contact.PhoneNumber,
+        StackedTokens: contact.StackedTokens,
       };
     }
   } catch (error) {
@@ -111,6 +117,59 @@ async function setWalletContact() {
     console.error(error);
   }
 }
+
+async function approveTokens(amount: number) {
+  try {
+    const { ethereum } = window;
+    if (!ethereum) {
+      console.error("No metamask");
+      return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(ethereum);
+    const signer = provider.getSigner();
+    const coinContract = new ethers.Contract(coinAddress, coinABI, signer);
+
+    const txn = await coinContract.approve(contractAddress, amount);
+    console.log("Approve tokens...");
+    await txn.wait();
+    console.log("Tokens approval", txn.hash);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function stackTokens(amount: number) {
+  try {
+    const { ethereum } = window;
+    if (!ethereum) {
+      console.error("No metamask");
+      return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(ethereum);
+    const signer = provider.getSigner();
+    const walletDirectoryContract = new ethers.Contract(
+      contractAddress,
+      contractABI,
+      signer
+    );
+
+    const allowance = await walletDirectoryContract.getAllowance();
+    console.log("Allowance: ", allowance);
+
+    if (allowance < amount) {
+      await approveTokens(amount);
+    }
+
+    const txn = await walletDirectoryContract.acceptTransfer(amount);
+    console.log("Accept transfer...");
+    await txn.wait();
+    console.log("Transfer accepted", txn.hash);
+  } catch (error) {
+    console.error(error);
+  }
+}
 </script>
 
 <template>
@@ -150,6 +209,11 @@ async function setWalletContact() {
           </div>
           <hr />
           <div>
+            <span class="font-semibold">Stacked Tokens: </span>
+            <span class="font-thin">{{ currentContact.StackedTokens }}</span>
+          </div>
+          <hr />
+          <div>
             <span class="font-semibold">Email: </span>
             <input
               type="text"
@@ -184,6 +248,12 @@ async function setWalletContact() {
           @click="setWalletContact"
         >
           Set Contact informations
+        </button>
+        <button
+          class="inline-block bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-lg py-2 mt-2 leading-tight w-full"
+          @click="stackTokens(100)"
+        >
+          Stack 100 Tokens
         </button>
       </div>
     </div>
