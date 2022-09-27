@@ -54,7 +54,7 @@ contract WalletDirectory is Ownable {
    function acceptTransfer(uint256 _amount) public returns(bool) {
        require(_token.transferFrom(msg.sender, address(this), _amount), "Please approve tokens before transferring");
 
-       directory[msg.sender].StackedTokens += _amount;
+       directory[msg.sender].StackedTokens += _amount / 10**18;
        return true;
    }
 
